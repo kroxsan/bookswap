@@ -1,1 +1,0 @@
-D:\react native hafta1\bookswap-frontend\android\app\build\intermediates\cxx\Debug\5a3k555v\obj\arm64-v8a

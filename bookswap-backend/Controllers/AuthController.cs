@@ -1,5 +1,4 @@
-// BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Controllers/AuthController.cs - Hafta 2: Kayıt ve giriş endpoint'leri
+// Kayıt ve giriş endpoint'leri
 
 using BookSwap.API.Data;
 using BookSwap.API.DTOs;
@@ -30,7 +29,6 @@ public class AuthController : ControllerBase
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        // Email zaten kayıtlı mı?
         if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
             return BadRequest(new { message = "Bu e-posta adresi zaten kullanılıyor." });
 
@@ -44,11 +42,9 @@ public class AuthController : ControllerBase
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        var token = GenerateToken(user);
-
         return Ok(new AuthResponseDto
         {
-            Token = token,
+            Token = GenerateToken(user),
             Name = user.Name,
             Email = user.Email,
             UserId = user.Id
@@ -64,11 +60,9 @@ public class AuthController : ControllerBase
         if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             return Unauthorized(new { message = "E-posta veya şifre hatalı." });
 
-        var token = GenerateToken(user);
-
         return Ok(new AuthResponseDto
         {
-            Token = token,
+            Token = GenerateToken(user),
             Name = user.Name,
             Email = user.Email,
             UserId = user.Id
@@ -79,8 +73,6 @@ public class AuthController : ControllerBase
     {
         var key = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
@@ -93,9 +85,8 @@ public class AuthController : ControllerBase
             issuer: _config["Jwt:Issuer"],
             audience: _config["Jwt:Audience"],
             claims: claims,
-            expires: DateTime.UtcNow.AddDays(
-                int.Parse(_config["Jwt:ExpiresInDays"]!)),
-            signingCredentials: creds
+            expires: DateTime.UtcNow.AddDays(int.Parse(_config["Jwt:ExpiresInDays"]!)),
+            signingCredentials: new SigningCredentials(key, SecurityAlgorithms.HmacSha256)
         );
 
         return new JwtSecurityTokenHandler().WriteToken(token);

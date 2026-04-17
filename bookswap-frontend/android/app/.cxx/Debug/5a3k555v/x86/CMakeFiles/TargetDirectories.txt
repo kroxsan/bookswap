@@ -1,3 +1,0 @@
-D:/react native hafta1/bookswap-frontend/android/app/.cxx/Debug/5a3k555v/x86/CMakeFiles/appmodules.dir
-D:/react native hafta1/bookswap-frontend/android/app/.cxx/Debug/5a3k555v/x86/CMakeFiles/edit_cache.dir
-D:/react native hafta1/bookswap-frontend/android/app/.cxx/Debug/5a3k555v/x86/CMakeFiles/rebuild_cache.dir

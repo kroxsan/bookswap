@@ -1,5 +1,4 @@
-// BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Models/User.cs - Hafta 2: Kullanıcı modeli
+// Kullanıcı modeli
 
 namespace BookSwap.API.Models;
 

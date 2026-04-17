@@ -1,5 +1,5 @@
 // BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Program.cs - Hafta 2: Veritabanı bağlantısı ve JWT kimlik doğrulama eklendi
+// Program.cs - Hafta 4: Books tablosu eklendi
 
 using BookSwap.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -9,12 +9,11 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Servisler
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Veritabanı bağlantısı - MSSQL
+// MSSQL bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -35,7 +34,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// CORS - React Native emülatörden gelen isteklere izin ver
+// CORS - Android emülatörden gelen isteklere izin ver (10.0.2.2)
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -48,14 +47,35 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Veritabanını otomatik oluştur
+// Veritabanını otomatik oluştur / güncelle
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+    // Veritabanı yoksa sıfırdan oluştur
     db.Database.EnsureCreated();
+
+    // Books tablosu yoksa elle oluştur (EnsureCreated mevcut DB'ye yeni tablo eklemez)
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Books')
+        BEGIN
+            CREATE TABLE Books (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                Title NVARCHAR(200) NOT NULL,
+                Author NVARCHAR(200) NOT NULL,
+                Category NVARCHAR(100) NOT NULL,
+                Condition NVARCHAR(50) NOT NULL,
+                Description NVARCHAR(MAX) NULL,
+                Status NVARCHAR(50) NOT NULL DEFAULT 'Aktif',
+                CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                UserId INT NOT NULL,
+                CONSTRAINT FK_Books_Users FOREIGN KEY (UserId)
+                    REFERENCES Users(Id) ON DELETE CASCADE
+            )
+        END
+    ");
 }
 
-// Middleware
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -67,13 +87,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-// API'nin ayakta olduğunu doğrulayan endpoint
 app.MapGet("/", () => new
 {
     app = "BookSwap API",
-    version = "0.2.0",
+    version = "0.4.0",
     status = "running",
-    hafta = 2
+    hafta = 4
 });
 
 app.Run();

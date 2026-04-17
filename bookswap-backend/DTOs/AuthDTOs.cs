@@ -1,5 +1,4 @@
-// BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// DTOs/AuthDTOs.cs - Hafta 2: Kayıt ve giriş için veri transfer nesneleri
+// Kayıt ve giriş için veri transfer nesneleri
 
 namespace BookSwap.API.DTOs;
 

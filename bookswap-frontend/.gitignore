@@ -1,35 +1,9 @@
-# Node
 node_modules/
 npm-debug.log
 yarn-error.log
-
-# Android
 android/app/build/
 android/.gradle/
 android/local.properties
-android/captures/
-
-# iOS
-ios/Pods/
-ios/build/
-*.pbxuser
-*.mode1v3
-*.mode2v3
-DerivedData
-*.hmap
-*.ipa
-
-# Bundle artifacts
 *.jsbundle
-
-# Environment
 .env
-.env.local
-.env.production
-
-# IDE
-.vscode/
-.idea/
-
-# macOS
 .DS_Store

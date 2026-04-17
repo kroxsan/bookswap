@@ -1,8 +1,72 @@
 {
-  "root": "D:\\react native hafta1\\bookswap-frontend",
-  "reactNativePath": "D:\\react native hafta1\\bookswap-frontend\\node_modules\\react-native",
+  "root": "D:\\react native hafta 3\\bookswap-frontend",
+  "reactNativePath": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native",
   "reactNativeVersion": "0.76",
-  "dependencies": {},
+  "dependencies": {
+    "react-native-screens": {
+      "root": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native-screens",
+      "name": "react-native-screens",
+      "platforms": {
+        "ios": {
+          "podspecPath": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native-screens\\RNScreens.podspec",
+          "version": "3.37.0",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native-screens\\android",
+          "packageImportPath": "import com.swmansion.rnscreens.RNScreensPackage;",
+          "packageInstance": "new RNScreensPackage()",
+          "buildTypes": [],
+          "libraryName": "rnscreens",
+          "componentDescriptors": [
+            "RNSFullWindowOverlayComponentDescriptor",
+            "RNSScreenContainerComponentDescriptor",
+            "RNSScreenNavigationContainerComponentDescriptor",
+            "RNSScreenStackHeaderConfigComponentDescriptor",
+            "RNSScreenStackHeaderSubviewComponentDescriptor",
+            "RNSScreenStackComponentDescriptor",
+            "RNSSearchBarComponentDescriptor",
+            "RNSScreenComponentDescriptor",
+            "RNSModalScreenComponentDescriptor"
+          ],
+          "cmakeListsPath": "D:/react native hafta 3/bookswap-frontend/node_modules/react-native-screens/android/src/main/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    },
+    "react-native-safe-area-context": {
+      "root": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native-safe-area-context",
+      "name": "react-native-safe-area-context",
+      "platforms": {
+        "ios": {
+          "podspecPath": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native-safe-area-context\\react-native-safe-area-context.podspec",
+          "version": "4.14.1",
+          "configurations": [],
+          "scriptPhases": []
+        },
+        "android": {
+          "sourceDir": "D:\\react native hafta 3\\bookswap-frontend\\node_modules\\react-native-safe-area-context\\android",
+          "packageImportPath": "import com.th3rdwave.safeareacontext.SafeAreaContextPackage;",
+          "packageInstance": "new SafeAreaContextPackage()",
+          "buildTypes": [],
+          "libraryName": "safeareacontext",
+          "componentDescriptors": [
+            "RNCSafeAreaProviderComponentDescriptor",
+            "RNCSafeAreaViewComponentDescriptor"
+          ],
+          "cmakeListsPath": "D:/react native hafta 3/bookswap-frontend/node_modules/react-native-safe-area-context/android/src/main/jni/CMakeLists.txt",
+          "cxxModuleCMakeListsModuleName": null,
+          "cxxModuleCMakeListsPath": null,
+          "cxxModuleHeaderName": null,
+          "isPureCxxDependency": false
+        }
+      }
+    }
+  },
   "commands": [
     {
       "name": "bundle",
@@ -160,7 +224,7 @@
         {
           "name": "--path <path>",
           "description": "Path to the React Native project root.",
-          "default": "D:\\react native hafta1\\bookswap-frontend"
+          "default": "D:\\react native hafta 3\\bookswap-frontend"
         },
         {
           "name": "--platform <string>",
@@ -448,7 +512,7 @@
   "project": {
     "ios": null,
     "android": {
-      "sourceDir": "D:\\react native hafta1\\bookswap-frontend\\android",
+      "sourceDir": "D:\\react native hafta 3\\bookswap-frontend\\android",
       "appName": "app",
       "packageName": "com.bookswap_frontend",
       "applicationId": "com.bookswap_frontend",
