@@ -1,0 +1,5 @@
+# ninja log v5
+3	35	0	D:/react native hafta1/bookswap-frontend/android/app/.cxx/Debug/5a3k555v/x86_64/CMakeFiles/cmake.verify_globs	b3e24e0617d28341
+7	5151	7964936539064307	CMakeFiles/appmodules.dir/D_/react_native_hafta1/bookswap-frontend/android/app/build/generated/autolinking/src/main/jni/autolinking.cpp.o	c6f076d1fa32ef5c
+1	5549	7964936543047585	CMakeFiles/appmodules.dir/OnLoad.cpp.o	9affcda53eec892f
+5550	5730	7964936544988571	D:/react native hafta1/bookswap-frontend/android/app/build/intermediates/cxx/Debug/5a3k555v/obj/x86_64/libappmodules.so	7c708d9b6a92fd81
