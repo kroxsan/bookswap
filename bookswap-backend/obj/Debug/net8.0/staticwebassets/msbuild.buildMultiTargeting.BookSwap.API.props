@@ -1,0 +1,3 @@
+﻿<Project>
+  <Import Project="..\build\BookSwap.API.props" />
+</Project>
