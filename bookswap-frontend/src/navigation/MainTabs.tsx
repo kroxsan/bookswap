@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {Text} from 'react-native';
@@ -7,12 +5,14 @@ import {NativeStackScreenProps} from '@react-navigation/native-stack';
 import {RootStackParamList} from './RootNavigator';
 import HomeScreen from '../screens/HomeScreen';
 import MyBooksScreen from '../screens/MyBooksScreen';
+import OffersScreen from '../screens/OffersScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import Colors from '../theme/colors';
 
 export type TabParamList = {
   'Ana Sayfa': undefined;
   'İlanlarım': undefined;
+  'Teklifler': undefined;
   'Profil': {userName: string};
 };
 
@@ -39,12 +39,14 @@ const MainTabs = ({route}: Props) => {
           let icon = '📚';
           if (tabRoute.name === 'Ana Sayfa') icon = '🏠';
           if (tabRoute.name === 'İlanlarım') icon = '📖';
+          if (tabRoute.name === 'Teklifler') icon = '🔄';
           if (tabRoute.name === 'Profil') icon = '👤';
           return <Text style={{fontSize: focused ? 22 : 20}}>{icon}</Text>;
         },
       })}>
       <Tab.Screen name="Ana Sayfa" component={HomeScreen} />
       <Tab.Screen name="İlanlarım" component={MyBooksScreen} />
+      <Tab.Screen name="Teklifler" component={OffersScreen} />
       <Tab.Screen
         name="Profil"
         component={ProfileScreen}

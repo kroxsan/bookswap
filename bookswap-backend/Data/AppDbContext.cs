@@ -11,6 +11,7 @@ public class AppDbContext : DbContext
 
     public DbSet<User> Users { get; set; }
     public DbSet<Book> Books { get; set; }
+    public DbSet<Offer> Offers { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -44,5 +45,30 @@ public class AppDbContext : DbContext
             .Property(b => b.Author)
             .IsRequired()
             .HasMaxLength(200);
+
+        // Offer ilişkileri - döngüsel cascade'i önlemek için NoAction
+        modelBuilder.Entity<Offer>()
+            .HasOne(o => o.Sender)
+            .WithMany()
+            .HasForeignKey(o => o.SenderId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Offer>()
+            .HasOne(o => o.Receiver)
+            .WithMany()
+            .HasForeignKey(o => o.ReceiverId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Offer>()
+            .HasOne(o => o.RequestedBook)
+            .WithMany()
+            .HasForeignKey(o => o.RequestedBookId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Offer>()
+            .HasOne(o => o.OfferedBook)
+            .WithMany()
+            .HasForeignKey(o => o.OfferedBookId)
+            .OnDelete(DeleteBehavior.NoAction);
     }
 }

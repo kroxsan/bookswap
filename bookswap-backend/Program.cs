@@ -1,5 +1,5 @@
 // BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Program.cs - Hafta 4: Books tablosu eklendi
+// Program.cs - Hafta 6: Offers tablosu eklendi
 
 using BookSwap.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -58,7 +58,7 @@ using (var scope = app.Services.CreateScope())
     // Veritabanı yoksa sıfırdan oluştur
     db.Database.EnsureCreated();
 
-    // Books tablosu yoksa elle oluştur (EnsureCreated mevcut DB'ye yeni tablo eklemez)
+    // Books tablosu yoksa elle oluştur
     db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Books')
         BEGIN
@@ -74,6 +74,30 @@ using (var scope = app.Services.CreateScope())
                 UserId INT NOT NULL,
                 CONSTRAINT FK_Books_Users FOREIGN KEY (UserId)
                     REFERENCES Users(Id) ON DELETE CASCADE
+            )
+        END
+    ");
+
+    // Offers tablosu yoksa oluştur
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Offers')
+        BEGIN
+            CREATE TABLE Offers (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                SenderId INT NOT NULL,
+                ReceiverId INT NOT NULL,
+                RequestedBookId INT NOT NULL,
+                OfferedBookId INT NOT NULL,
+                Status NVARCHAR(50) NOT NULL DEFAULT 'Bekliyor',
+                CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT FK_Offers_Sender FOREIGN KEY (SenderId)
+                    REFERENCES Users(Id),
+                CONSTRAINT FK_Offers_Receiver FOREIGN KEY (ReceiverId)
+                    REFERENCES Users(Id),
+                CONSTRAINT FK_Offers_RequestedBook FOREIGN KEY (RequestedBookId)
+                    REFERENCES Books(Id),
+                CONSTRAINT FK_Offers_OfferedBook FOREIGN KEY (OfferedBookId)
+                    REFERENCES Books(Id)
             )
         END
     ");
@@ -93,9 +117,9 @@ app.MapControllers();
 app.MapGet("/", () => new
 {
     app = "BookSwap API",
-    version = "0.4.0",
+    version = "0.6.0",
     status = "running",
-    hafta = 4
+    hafta = 6
 });
 
 app.Run();

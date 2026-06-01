@@ -1,5 +1,10 @@
+<<<<<<< HEAD
 // API servis katmanı
 // Gerçek telefon için bilgisayarın yerel IP adresi kullanılır
+=======
+// BookSwap - API servis katmanı
+// Hafta 6: offerService güncellendi, bookService.search eklendi
+>>>>>>> d59bc66 (Hafta 6: SendOfferScreen eklendi, teklif sistemi tamamlandı)
 
 const BASE_URL = 'http://10.0.2.2:5000';
 
@@ -22,13 +27,11 @@ async function post<T>(endpoint: string, body: object): Promise<ApiResponse<T>> 
   try {
     const headers: Record<string, string> = {'Content-Type': 'application/json'};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
     const response = await fetch(`${BASE_URL}${endpoint}`, {
       method: 'POST',
       headers,
       body: JSON.stringify(body),
     });
-
     const json = await response.json();
     if (!response.ok) return {error: json.message || 'Bir hata oluştu.'};
     return {data: json as T};
@@ -41,7 +44,6 @@ async function get<T>(endpoint: string): Promise<ApiResponse<T>> {
   try {
     const headers: Record<string, string> = {};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
     const response = await fetch(`${BASE_URL}${endpoint}`, {method: 'GET', headers});
     const json = await response.json();
     if (!response.ok) return {error: json.message || 'Bir hata oluştu.'};
@@ -55,13 +57,29 @@ async function del<T>(endpoint: string): Promise<ApiResponse<T>> {
   try {
     const headers: Record<string, string> = {};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
-
     const response = await fetch(`${BASE_URL}${endpoint}`, {method: 'DELETE', headers});
     if (!response.ok) {
       const json = await response.json();
       return {error: json.message || 'Bir hata oluştu.'};
     }
     return {data: {} as T};
+  } catch (e) {
+    return {error: 'Sunucuya bağlanılamadı.'};
+  }
+}
+
+async function put<T>(endpoint: string, body?: object): Promise<ApiResponse<T>> {
+  try {
+    const headers: Record<string, string> = {'Content-Type': 'application/json'};
+    if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+    const response = await fetch(`${BASE_URL}${endpoint}`, {
+      method: 'PUT',
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    const json = await response.json();
+    if (!response.ok) return {error: json.message || 'Bir hata oluştu.'};
+    return {data: json as T};
   } catch (e) {
     return {error: 'Sunucuya bağlanılamadı.'};
   }
@@ -79,7 +97,6 @@ export interface AuthResult {
 export const authService = {
   login: (email: string, password: string) =>
     post<AuthResult>('/api/auth/login', {email, password}),
-
   register: (name: string, email: string, password: string) =>
     post<AuthResult>('/api/auth/register', {name, email, password}),
 };
@@ -126,4 +143,38 @@ export const bookService = {
   },
   create: (data: CreateBookData) => post<Book>('/api/books', data),
   delete: (id: number) => del<{}>(`/api/books/${id}`),
+};
+
+// --- Offers --- Hafta 6
+
+export interface Offer {
+  id: number;
+  status: string; // Bekliyor, Kabul Edildi, Reddedildi
+  createdAt: string;
+  senderId: number;
+  senderName: string;
+  receiverId: number;
+  receiverName: string;
+  requestedBookId: number;
+  requestedBookTitle: string;
+  offeredBookId: number;
+  offeredBookTitle: string;
+}
+
+export const offerService = {
+  // Teklif gönder
+  create: (requestedBookId: number, offeredBookId: number) =>
+    post<Offer>('/api/offers', {requestedBookId, offeredBookId}),
+
+  // Bana gelen teklifler
+  getIncoming: () => get<Offer[]>('/api/offers/incoming'),
+
+  // Benim gönderdiğim teklifler
+  getOutgoing: () => get<Offer[]>('/api/offers/outgoing'),
+
+  // Kabul et
+  accept: (id: number) => put<{message: string}>(`/api/offers/${id}/accept`),
+
+  // Reddet
+  reject: (id: number) => put<{message: string}>(`/api/offers/${id}/reject`),
 };
