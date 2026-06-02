@@ -137,3 +137,4 @@ D:\react native hafta 3\bookswap-backend\obj\Debug\net8.0\refint\BookSwap.API.dl
 D:\react native hafta 3\bookswap-backend\obj\Debug\net8.0\BookSwap.API.pdb
 D:\react native hafta 3\bookswap-backend\obj\Debug\net8.0\BookSwap.API.genruntimeconfig.cache
 D:\react native hafta 3\bookswap-backend\obj\Debug\net8.0\ref\BookSwap.API.dll
+D:\react native hafta 3\bookswap-backend\obj\Debug\net8.0\BookSwap.API.sourcelink.json

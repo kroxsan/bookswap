@@ -1,6 +1,6 @@
 /**
  * BookSwap - Kampüs İkinci El Kitap Takas Platformu
- * App.tsx - Hafta 3: NavigationContainer + SafeAreaProvider
+ * App.tsx - Hafta 7: Bildirim sistemi eklendi
  */
 
 import React from 'react';

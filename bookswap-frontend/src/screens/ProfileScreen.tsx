@@ -46,15 +46,6 @@ const ProfileScreen = ({navigation, route}: Props) => {
         </View>
         <Text style={styles.name}>{userName}</Text>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoLabel}>Hafta 5 ✅</Text>
-          <Text style={styles.infoText}>
-            Arama ve kategori filtresi tamamlandı.{'\n'}
-            Kitap Detay ekranı aktif.{'\n'}
-            Hafta 6'da takas teklifi sistemi gelecek.
-          </Text>
-        </View>
-
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutText}>Çıkış Yap</Text>
         </TouchableOpacity>

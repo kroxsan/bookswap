@@ -1,4 +1,4 @@
-// Veritabanı bağlamı
+// Veritabanı bağlamı — Hafta 7: Notifications tablosu eklendi
 
 using BookSwap.API.Models;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<Book> Books { get; set; }
     public DbSet<Offer> Offers { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,5 +71,12 @@ public class AppDbContext : DbContext
             .WithMany()
             .HasForeignKey(o => o.OfferedBookId)
             .OnDelete(DeleteBehavior.NoAction);
+
+        // Notification ilişkisi — kullanıcı silinince bildirimleri de silinsin
+        modelBuilder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

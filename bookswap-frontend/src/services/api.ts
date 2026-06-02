@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-// API servis katmanı
-// Gerçek telefon için bilgisayarın yerel IP adresi kullanılır
-=======
 // BookSwap - API servis katmanı
-// Hafta 6: offerService güncellendi, bookService.search eklendi
->>>>>>> d59bc66 (Hafta 6: SendOfferScreen eklendi, teklif sistemi tamamlandı)
+// Hafta 7: notificationService eklendi
+// Gerçek telefon için bilgisayarın yerel IP adresi kullanılır
 
 const BASE_URL = 'http://10.0.2.2:5000';
 
@@ -85,7 +81,7 @@ async function put<T>(endpoint: string, body?: object): Promise<ApiResponse<T>> 
   }
 }
 
-// --- Auth ---
+// ─── Auth ───────────────────────────────────────────────────────────────────
 
 export interface AuthResult {
   token: string;
@@ -101,7 +97,7 @@ export const authService = {
     post<AuthResult>('/api/auth/register', {name, email, password}),
 };
 
-// --- Books ---
+// ─── Books ───────────────────────────────────────────────────────────────────
 
 export interface Book {
   id: number;
@@ -145,7 +141,7 @@ export const bookService = {
   delete: (id: number) => del<{}>(`/api/books/${id}`),
 };
 
-// --- Offers --- Hafta 6
+// ─── Offers ──────────────────────────────────────────────────────────────────
 
 export interface Offer {
   id: number;
@@ -162,19 +158,36 @@ export interface Offer {
 }
 
 export const offerService = {
-  // Teklif gönder
   create: (requestedBookId: number, offeredBookId: number) =>
     post<Offer>('/api/offers', {requestedBookId, offeredBookId}),
-
-  // Bana gelen teklifler
   getIncoming: () => get<Offer[]>('/api/offers/incoming'),
-
-  // Benim gönderdiğim teklifler
   getOutgoing: () => get<Offer[]>('/api/offers/outgoing'),
-
-  // Kabul et
   accept: (id: number) => put<{message: string}>(`/api/offers/${id}/accept`),
-
-  // Reddet
   reject: (id: number) => put<{message: string}>(`/api/offers/${id}/reject`),
+};
+
+// ─── Notifications (Hafta 7) ─────────────────────────────────────────────────
+
+export interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  type: string; // TeklifAlindi, TeklifKabul, TeklifRed
+  offerId?: number;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export const notificationService = {
+  // Tüm bildirimler
+  getAll: () => get<Notification[]>('/api/notifications'),
+
+  // Okunmamış bildirim sayısı
+  getUnreadCount: () => get<{count: number}>('/api/notifications/unread'),
+
+  // Tek bildirimi okundu yap
+  markRead: (id: number) => put<{message: string}>(`/api/notifications/${id}/read`),
+
+  // Tüm bildirimleri okundu yap
+  markAllRead: () => put<{message: string}>('/api/notifications/read-all'),
 };

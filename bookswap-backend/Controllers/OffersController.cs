@@ -1,9 +1,12 @@
-// Takas teklifi endpoint'leri
-// POST   /api/offers           → teklif gönder
-// GET    /api/offers/incoming  → bana gelen teklifler
-// GET    /api/offers/outgoing  → benim gönderdiğim teklifler
-// PUT    /api/offers/{id}/accept → teklifi kabul et
-// PUT    /api/offers/{id}/reject → teklifi reddet
+// Takas teklifi endpoint'leri — Hafta 7
+// Hafta 6'dan farkı teklif gönderilince ve kabul/red edilince
+// ilgili kullanıcıya otomatik bildirim oluşturuluyor.
+//
+// POST   /api/offers              - teklif gönder  (+bildirim)
+// GET    /api/offers/incoming     - gelen teklifler
+// GET    /api/offers/outgoing     - giden teklifler
+// PUT    /api/offers/{id}/accept  - kabul et        (+bildirim)
+// PUT    /api/offers/{id}/reject  - reddet           (+bildirim)
 
 using BookSwap.API.Data;
 using BookSwap.API.DTOs;
@@ -27,14 +30,18 @@ public class OffersController : ControllerBase
         _context = context;
     }
 
-    // teklif gönder
+    // POST /api/offers — teklif gönder
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOfferDto dto)
     {
         var senderId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var senderName = User.FindFirstValue(ClaimTypes.Name)!;
 
         // İstenen kitabın var olup olmadığını kontrol et
-        var requestedBook = await _context.Books.FindAsync(dto.RequestedBookId);
+        var requestedBook = await _context.Books
+            .Include(b => b.User)
+            .FirstOrDefaultAsync(b => b.Id == dto.RequestedBookId);
+
         if (requestedBook == null)
             return NotFound(new { message = "İstenen kitap bulunamadı." });
 
@@ -59,13 +66,31 @@ public class OffersController : ControllerBase
 
         var offer = new Offer
         {
-            SenderId = senderId,
-            ReceiverId = requestedBook.UserId,
+            SenderId       = senderId,
+            ReceiverId     = requestedBook.UserId,
             RequestedBookId = dto.RequestedBookId,
-            OfferedBookId = dto.OfferedBookId
+            OfferedBookId  = dto.OfferedBookId
         };
 
         _context.Offers.Add(offer);
+
+        // ── Hafta 7: Bildirim oluştur ──────────────────────────────────
+        // İlan sahibine: "sana yeni bir takas teklifi geldi"
+        var notification = new Notification
+        {
+            UserId  = requestedBook.UserId,
+            Title   = "Yeni Takas Teklifi 🔄",
+            Message = $"{senderName}, \"{requestedBook.Title}\" ilanın için takas teklifi gönderdi.",
+            Type    = "TeklifAlindi",
+            OfferId = 0  // SaveChanges sonrası güncellenecek
+        };
+        _context.Notifications.Add(notification);
+        // ──────────────────────────────────────────────────────────────
+
+        await _context.SaveChangesAsync();
+
+        // Offer.Id artık atandı — bildirimi güncelle
+        notification.OfferId = offer.Id;
         await _context.SaveChangesAsync();
 
         // Tam veriyle yükle ve döndür
@@ -77,7 +102,7 @@ public class OffersController : ControllerBase
         return Ok(MapToDto(offer));
     }
 
-    // bana gelen teklifler
+    // GET /api/offers/incoming — bana gelen teklifler
     [HttpGet("incoming")]
     public async Task<IActionResult> GetIncoming()
     {
@@ -95,7 +120,7 @@ public class OffersController : ControllerBase
         return Ok(offers.Select(MapToDto));
     }
 
-    // benim gönderdiğim teklifler
+    // GET /api/offers/outgoing — benim gönderdiğim teklifler
     [HttpGet("outgoing")]
     public async Task<IActionResult> GetOutgoing()
     {
@@ -113,39 +138,70 @@ public class OffersController : ControllerBase
         return Ok(offers.Select(MapToDto));
     }
 
-    // teklifi kabul et
+    // PUT /api/offers/{id}/accept — teklifi kabul et
     [HttpPut("{id}/accept")]
     public async Task<IActionResult> Accept(int id)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId   = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userName = User.FindFirstValue(ClaimTypes.Name)!;
 
-        var offer = await _context.Offers.FindAsync(id);
+        var offer = await _context.Offers
+            .Include(o => o.RequestedBook)
+            .Include(o => o.OfferedBook)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
         if (offer == null) return NotFound(new { message = "Teklif bulunamadı." });
         if (offer.ReceiverId != userId) return Forbid();
         if (offer.Status != "Bekliyor")
             return BadRequest(new { message = "Bu teklif zaten yanıtlanmış." });
 
         offer.Status = "Kabul Edildi";
-        await _context.SaveChangesAsync();
 
+        // ── Hafta 7: Bildirim — teklifi gönderene bildir ───────────────
+        _context.Notifications.Add(new Notification
+        {
+            UserId  = offer.SenderId,
+            Title   = "Teklifin Kabul Edildi ✅",
+            Message = $"{userName}, \"{offer.RequestedBook.Title}\" için teklifini kabul etti!",
+            Type    = "TeklifKabul",
+            OfferId = offer.Id
+        });
+        // ──────────────────────────────────────────────────────────────
+
+        await _context.SaveChangesAsync();
         return Ok(new { message = "Teklif kabul edildi.", offerId = id });
     }
 
-    // teklifi reddet
+    // PUT /api/offers/{id}/reject — teklifi reddet
     [HttpPut("{id}/reject")]
     public async Task<IActionResult> Reject(int id)
     {
-        var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userId   = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var userName = User.FindFirstValue(ClaimTypes.Name)!;
 
-        var offer = await _context.Offers.FindAsync(id);
+        var offer = await _context.Offers
+            .Include(o => o.RequestedBook)
+            .FirstOrDefaultAsync(o => o.Id == id);
+
         if (offer == null) return NotFound(new { message = "Teklif bulunamadı." });
         if (offer.ReceiverId != userId) return Forbid();
         if (offer.Status != "Bekliyor")
             return BadRequest(new { message = "Bu teklif zaten yanıtlanmış." });
 
         offer.Status = "Reddedildi";
-        await _context.SaveChangesAsync();
 
+        // ── Hafta 7: Bildirim — teklifi gönderene bildir ───────────────
+        _context.Notifications.Add(new Notification
+        {
+            UserId  = offer.SenderId,
+            Title   = "Teklifin Reddedildi ❌",
+            Message = $"{userName}, \"{offer.RequestedBook.Title}\" için teklifini reddetti.",
+            Type    = "TeklifRed",
+            OfferId = offer.Id
+        });
+        // ──────────────────────────────────────────────────────────────
+
+        await _context.SaveChangesAsync();
         return Ok(new { message = "Teklif reddedildi.", offerId = id });
     }
 

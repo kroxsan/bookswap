@@ -1,5 +1,5 @@
 // BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Program.cs - Hafta 6: Offers tablosu eklendi
+// Program.cs — Hafta 7: Notifications tablosu eklendi
 
 using BookSwap.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -101,6 +101,25 @@ using (var scope = app.Services.CreateScope())
             )
         END
     ");
+
+    // Hafta 7 — Notifications tablosu
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
+        BEGIN
+            CREATE TABLE Notifications (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                UserId INT NOT NULL,
+                Title NVARCHAR(200) NOT NULL,
+                Message NVARCHAR(500) NOT NULL,
+                Type NVARCHAR(50) NOT NULL,
+                OfferId INT NULL,
+                IsRead BIT NOT NULL DEFAULT 0,
+                CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT FK_Notifications_Users FOREIGN KEY (UserId)
+                    REFERENCES Users(Id) ON DELETE CASCADE
+            )
+        END
+    ");
 }
 
 if (app.Environment.IsDevelopment())
@@ -117,9 +136,9 @@ app.MapControllers();
 app.MapGet("/", () => new
 {
     app = "BookSwap API",
-    version = "0.6.0",
+    version = "0.7.0",
     status = "running",
-    hafta = 6
+    hafta = 7
 });
 
 app.Run();
