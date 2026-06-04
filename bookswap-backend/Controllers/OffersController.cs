@@ -1,12 +1,12 @@
-// Takas teklifi endpoint'leri — Hafta 7
-// Hafta 6'dan farkı teklif gönderilince ve kabul/red edilince
-// ilgili kullanıcıya otomatik bildirim oluşturuluyor.
+// Takas teklifi endpoint'leri — Hafta 8
 //
 // POST   /api/offers              - teklif gönder  (+bildirim)
 // GET    /api/offers/incoming     - gelen teklifler
 // GET    /api/offers/outgoing     - giden teklifler
 // PUT    /api/offers/{id}/accept  - kabul et        (+bildirim)
 // PUT    /api/offers/{id}/reject  - reddet           (+bildirim)
+//
+// Status değerleri: "Bekliyor" | "Kabul" | "Red"
 
 using BookSwap.API.Data;
 using BookSwap.API.DTOs;
@@ -37,7 +37,6 @@ public class OffersController : ControllerBase
         var senderId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var senderName = User.FindFirstValue(ClaimTypes.Name)!;
 
-        // İstenen kitabın var olup olmadığını kontrol et
         var requestedBook = await _context.Books
             .Include(b => b.User)
             .FirstOrDefaultAsync(b => b.Id == dto.RequestedBookId);
@@ -45,17 +44,14 @@ public class OffersController : ControllerBase
         if (requestedBook == null)
             return NotFound(new { message = "İstenen kitap bulunamadı." });
 
-        // Kendi ilanına teklif gönderemez
         if (requestedBook.UserId == senderId)
             return BadRequest(new { message = "Kendi ilanına teklif gönderemezsin." });
 
-        // Teklif edilen kitap gerçekten bu kullanıcıya ait mi?
         var offeredBook = await _context.Books
             .FirstOrDefaultAsync(b => b.Id == dto.OfferedBookId && b.UserId == senderId);
         if (offeredBook == null)
             return BadRequest(new { message = "Teklif ettiğin kitap sana ait değil veya bulunamadı." });
 
-        // Aynı kitap çifti için bekleyen teklif var mı?
         var existing = await _context.Offers
             .FirstOrDefaultAsync(o =>
                 o.SenderId == senderId &&
@@ -66,34 +62,29 @@ public class OffersController : ControllerBase
 
         var offer = new Offer
         {
-            SenderId       = senderId,
-            ReceiverId     = requestedBook.UserId,
+            SenderId        = senderId,
+            ReceiverId      = requestedBook.UserId,
             RequestedBookId = dto.RequestedBookId,
-            OfferedBookId  = dto.OfferedBookId
+            OfferedBookId   = dto.OfferedBookId
         };
 
         _context.Offers.Add(offer);
 
-        // ── Hafta 7: Bildirim oluştur ──────────────────────────────────
-        // İlan sahibine: "sana yeni bir takas teklifi geldi"
         var notification = new Notification
         {
             UserId  = requestedBook.UserId,
             Title   = "Yeni Takas Teklifi 🔄",
             Message = $"{senderName}, \"{requestedBook.Title}\" ilanın için takas teklifi gönderdi.",
             Type    = "TeklifAlindi",
-            OfferId = 0  // SaveChanges sonrası güncellenecek
+            OfferId = 0
         };
         _context.Notifications.Add(notification);
-        // ──────────────────────────────────────────────────────────────
 
         await _context.SaveChangesAsync();
 
-        // Offer.Id artık atandı — bildirimi güncelle
         notification.OfferId = offer.Id;
         await _context.SaveChangesAsync();
 
-        // Tam veriyle yükle ve döndür
         await _context.Entry(offer).Reference(o => o.Sender).LoadAsync();
         await _context.Entry(offer).Reference(o => o.Receiver).LoadAsync();
         await _context.Entry(offer).Reference(o => o.RequestedBook).LoadAsync();
@@ -155,9 +146,8 @@ public class OffersController : ControllerBase
         if (offer.Status != "Bekliyor")
             return BadRequest(new { message = "Bu teklif zaten yanıtlanmış." });
 
-        offer.Status = "Kabul Edildi";
+        offer.Status = "Kabul";
 
-        // ── Hafta 7: Bildirim — teklifi gönderene bildir ───────────────
         _context.Notifications.Add(new Notification
         {
             UserId  = offer.SenderId,
@@ -166,7 +156,6 @@ public class OffersController : ControllerBase
             Type    = "TeklifKabul",
             OfferId = offer.Id
         });
-        // ──────────────────────────────────────────────────────────────
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Teklif kabul edildi.", offerId = id });
@@ -188,9 +177,8 @@ public class OffersController : ControllerBase
         if (offer.Status != "Bekliyor")
             return BadRequest(new { message = "Bu teklif zaten yanıtlanmış." });
 
-        offer.Status = "Reddedildi";
+        offer.Status = "Red";
 
-        // ── Hafta 7: Bildirim — teklifi gönderene bildir ───────────────
         _context.Notifications.Add(new Notification
         {
             UserId  = offer.SenderId,
@@ -199,7 +187,6 @@ public class OffersController : ControllerBase
             Type    = "TeklifRed",
             OfferId = offer.Id
         });
-        // ──────────────────────────────────────────────────────────────
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Teklif reddedildi.", offerId = id });
@@ -208,16 +195,20 @@ public class OffersController : ControllerBase
     // yardımcı: Offer → OfferResponseDto
     private static OfferResponseDto MapToDto(Offer o) => new()
     {
-        Id = o.Id,
-        Status = o.Status,
-        CreatedAt = o.CreatedAt,
-        SenderId = o.SenderId,
-        SenderName = o.Sender.Name,
-        ReceiverId = o.ReceiverId,
-        ReceiverName = o.Receiver.Name,
-        RequestedBookId = o.RequestedBookId,
-        RequestedBookTitle = o.RequestedBook.Title,
-        OfferedBookId = o.OfferedBookId,
-        OfferedBookTitle = o.OfferedBook.Title
+        Id             = o.Id,
+        Status         = o.Status,
+        CreatedAt      = o.CreatedAt,
+        SenderId       = o.SenderId,
+        SenderName     = o.Sender.Name,
+        ReceiverId     = o.ReceiverId,
+        ReceiverName   = o.Receiver.Name,
+        // RequestedBook = ilan sahibinin kitabı = frontend'de "targetBook"
+        TargetBookId     = o.RequestedBookId,
+        TargetBookTitle  = o.RequestedBook.Title,
+        TargetBookAuthor = o.RequestedBook.Author,
+        // OfferedBook = teklifi gönderenin kitabı
+        OfferedBookId     = o.OfferedBookId,
+        OfferedBookTitle  = o.OfferedBook.Title,
+        OfferedBookAuthor = o.OfferedBook.Author,
     };
 }

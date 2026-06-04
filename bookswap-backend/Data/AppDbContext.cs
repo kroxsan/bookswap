@@ -1,4 +1,4 @@
-// Veritabanı bağlamı — Hafta 7: Notifications tablosu eklendi
+// Veritabanı bağlamı — Hafta 8: Reviews tablosu eklendi
 
 using BookSwap.API.Models;
 using Microsoft.EntityFrameworkCore;
@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<Book> Books { get; set; }
     public DbSet<Offer> Offers { get; set; }
     public DbSet<Notification> Notifications { get; set; }
+    public DbSet<Review> Reviews { get; set; }  // Hafta 8
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -30,7 +31,6 @@ public class AppDbContext : DbContext
             .IsRequired()
             .HasMaxLength(100);
 
-        // Kullanıcı silinince kitapları da silinsin
         modelBuilder.Entity<Book>()
             .HasOne(b => b.User)
             .WithMany()
@@ -47,7 +47,6 @@ public class AppDbContext : DbContext
             .IsRequired()
             .HasMaxLength(200);
 
-        // Offer ilişkileri - döngüsel cascade'i önlemek için NoAction
         modelBuilder.Entity<Offer>()
             .HasOne(o => o.Sender)
             .WithMany()
@@ -72,11 +71,34 @@ public class AppDbContext : DbContext
             .HasForeignKey(o => o.OfferedBookId)
             .OnDelete(DeleteBehavior.NoAction);
 
-        // Notification ilişkisi — kullanıcı silinince bildirimleri de silinsin
         modelBuilder.Entity<Notification>()
             .HasOne(n => n.User)
             .WithMany()
             .HasForeignKey(n => n.UserId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        // Review ilişkileri — Hafta 8
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.Reviewer)
+            .WithMany()
+            .HasForeignKey(r => r.ReviewerId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.ReviewedUser)
+            .WithMany()
+            .HasForeignKey(r => r.ReviewedUserId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        modelBuilder.Entity<Review>()
+            .HasOne(r => r.Offer)
+            .WithMany()
+            .HasForeignKey(r => r.OfferId)
+            .OnDelete(DeleteBehavior.NoAction);
+
+        // Aynı teklif için aynı kişi iki kez puan veremesin
+        modelBuilder.Entity<Review>()
+            .HasIndex(r => new { r.ReviewerId, r.OfferId })
+            .IsUnique();
     }
 }

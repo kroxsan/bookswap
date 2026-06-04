@@ -1,6 +1,5 @@
 // BookSwap - API servis katmanı
-// Hafta 7: notificationService eklendi
-// Gerçek telefon için bilgisayarın yerel IP adresi kullanılır
+// Hafta 8: reviewService + UserRating + CanReviewResult eklendi
 
 const BASE_URL = 'http://10.0.2.2:5000';
 
@@ -10,23 +9,19 @@ interface ApiResponse<T> {
 }
 
 let authToken: string | null = null;
+let currentUserId: number | null = null;
 
-export const setToken = (token: string) => {
-  authToken = token;
-};
-
-export const clearToken = () => {
-  authToken = null;
-};
+export const setToken = (token: string) => { authToken = token; };
+export const clearToken = () => { authToken = null; currentUserId = null; };
+export const setUserId = (id: number) => { currentUserId = id; };
+export const getUserId = (): number | null => currentUserId;
 
 async function post<T>(endpoint: string, body: object): Promise<ApiResponse<T>> {
   try {
     const headers: Record<string, string> = {'Content-Type': 'application/json'};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     const response = await fetch(`${BASE_URL}${endpoint}`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(body),
+      method: 'POST', headers, body: JSON.stringify(body),
     });
     const json = await response.json();
     if (!response.ok) return {error: json.message || 'Bir hata oluştu.'};
@@ -69,9 +64,7 @@ async function put<T>(endpoint: string, body?: object): Promise<ApiResponse<T>> 
     const headers: Record<string, string> = {'Content-Type': 'application/json'};
     if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
     const response = await fetch(`${BASE_URL}${endpoint}`, {
-      method: 'PUT',
-      headers,
-      body: body ? JSON.stringify(body) : undefined,
+      method: 'PUT', headers, body: body ? JSON.stringify(body) : undefined,
     });
     const json = await response.json();
     if (!response.ok) return {error: json.message || 'Bir hata oluştu.'};
@@ -145,21 +138,26 @@ export const bookService = {
 
 export interface Offer {
   id: number;
-  status: string; // Bekliyor, Kabul Edildi, Reddedildi
+  status: string;
   createdAt: string;
   senderId: number;
   senderName: string;
   receiverId: number;
   receiverName: string;
-  requestedBookId: number;
-  requestedBookTitle: string;
+  targetBookId: number;
+  targetBookTitle: string;
+  targetBookAuthor: string;
   offeredBookId: number;
   offeredBookTitle: string;
+  offeredBookAuthor: string;
 }
 
 export const offerService = {
-  create: (requestedBookId: number, offeredBookId: number) =>
-    post<Offer>('/api/offers', {requestedBookId, offeredBookId}),
+  create: (targetBookId: number, offeredBookId: number) =>
+    post<Offer>('/api/offers', {
+      requestedBookId: targetBookId,
+      offeredBookId,
+    }),
   getIncoming: () => get<Offer[]>('/api/offers/incoming'),
   getOutgoing: () => get<Offer[]>('/api/offers/outgoing'),
   accept: (id: number) => put<{message: string}>(`/api/offers/${id}/accept`),
@@ -172,22 +170,55 @@ export interface Notification {
   id: number;
   title: string;
   message: string;
-  type: string; // TeklifAlindi, TeklifKabul, TeklifRed
+  type: string;
   offerId?: number;
   isRead: boolean;
   createdAt: string;
 }
 
 export const notificationService = {
-  // Tüm bildirimler
   getAll: () => get<Notification[]>('/api/notifications'),
-
-  // Okunmamış bildirim sayısı
   getUnreadCount: () => get<{count: number}>('/api/notifications/unread'),
-
-  // Tek bildirimi okundu yap
   markRead: (id: number) => put<{message: string}>(`/api/notifications/${id}/read`),
-
-  // Tüm bildirimleri okundu yap
   markAllRead: () => put<{message: string}>('/api/notifications/read-all'),
+};
+
+// ─── Reviews (Hafta 8) ───────────────────────────────────────────────────────
+
+export interface Review {
+  id: number;
+  reviewerId: number;
+  reviewerName: string;
+  reviewedUserId: number;
+  offerId: number;
+  rating: number;
+  comment?: string;
+  createdAt: string;
+}
+
+export interface UserRating {
+  userId: number;
+  userName: string;
+  averageRating: number;
+  totalReviews: number;
+  reviews: Review[];
+}
+
+export interface CanReviewResult {
+  canReview: boolean;
+  targetUserId?: number;
+}
+
+export const reviewService = {
+  // Puan ver
+  create: (offerId: number, reviewedUserId: number, rating: number, comment?: string) =>
+    post<Review>('/api/reviews', {offerId, reviewedUserId, rating, comment}),
+
+  // Kullanıcının aldığı tüm puanlar ve ortalama
+  getUserRating: (userId: number) =>
+    get<UserRating>(`/api/reviews/user/${userId}`),
+
+  // Bu teklif için puan verebilir miyim?
+  canReview: (offerId: number) =>
+    get<CanReviewResult>(`/api/reviews/can-review/${offerId}`),
 };

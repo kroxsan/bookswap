@@ -1,5 +1,5 @@
 // BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Program.cs — Hafta 7: Notifications tablosu eklendi
+// Program.cs — Hafta 8: Reviews tablosu + status migration
 
 using BookSwap.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -120,6 +120,36 @@ using (var scope = app.Services.CreateScope())
             )
         END
     ");
+
+    // Hafta 8 — Reviews tablosu
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Reviews')
+        BEGIN
+            CREATE TABLE Reviews (
+                Id INT IDENTITY(1,1) PRIMARY KEY,
+                ReviewerId INT NOT NULL,
+                ReviewedUserId INT NOT NULL,
+                OfferId INT NOT NULL,
+                Rating INT NOT NULL,
+                Comment NVARCHAR(500) NULL,
+                CreatedAt DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                CONSTRAINT FK_Reviews_Reviewer FOREIGN KEY (ReviewerId)
+                    REFERENCES Users(Id),
+                CONSTRAINT FK_Reviews_ReviewedUser FOREIGN KEY (ReviewedUserId)
+                    REFERENCES Users(Id),
+                CONSTRAINT FK_Reviews_Offer FOREIGN KEY (OfferId)
+                    REFERENCES Offers(Id),
+                CONSTRAINT UQ_Reviews_ReviewerOffer UNIQUE (ReviewerId, OfferId)
+            )
+        END
+    ");
+
+    // Hafta 8 — Eski status string'lerini kısa forma migrate et
+    // "Kabul Edildi" -> "Kabul" | "Reddedildi" -> "Red"
+    db.Database.ExecuteSqlRaw(@"
+        UPDATE Offers SET Status = 'Kabul' WHERE Status = 'Kabul Edildi';
+        UPDATE Offers SET Status = 'Red'   WHERE Status = 'Reddedildi';
+    ");
 }
 
 if (app.Environment.IsDevelopment())
@@ -136,9 +166,9 @@ app.MapControllers();
 app.MapGet("/", () => new
 {
     app = "BookSwap API",
-    version = "0.7.0",
+    version = "0.8.0",
     status = "running",
-    hafta = 7
+    hafta = 8
 });
 
 app.Run();

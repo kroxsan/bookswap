@@ -15,7 +15,7 @@ import {SafeAreaView} from 'react-native-safe-area-context';
 import {NativeStackNavigationProp} from '@react-navigation/native-stack';
 import {RootStackParamList} from '../../navigation/RootNavigator';
 import Colors from '../../theme/colors';
-import {authService, setToken} from '../../services/api';
+import {authService, setToken, setUserId} from '../../services/api';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Login'>;
@@ -43,7 +43,11 @@ const LoginScreen = ({navigation}: Props) => {
     }
 
     setToken(result.data!.token);
-    navigation.replace('Main', {userName: result.data!.name});
+    setUserId(result.data!.userId); // Hafta 8: userId sakla
+    navigation.replace('Main', {
+      userName: result.data!.name,
+      userId: result.data!.userId,
+    });
   };
 
   return (
@@ -119,7 +123,7 @@ const LoginScreen = ({navigation}: Props) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.badge}>Hafta 5 ✅</Text>
+          <Text style={styles.badge}>Hafta 8 ✅</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

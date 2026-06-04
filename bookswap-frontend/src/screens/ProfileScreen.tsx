@@ -1,36 +1,68 @@
+// BookSwap - ProfileScreen
+// Hafta 8: Kullanıcının ortalama puanı ve aldığı yorumlar gösteriliyor
 
-
-import React from 'react';
-import {View, Text, StyleSheet, TouchableOpacity, Alert} from 'react-native';
+import React, {useState, useCallback} from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView,
+  ActivityIndicator,
+  RefreshControl,
+} from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {CompositeScreenProps} from '@react-navigation/native';
-import {BottomTabScreenProps} from '@react-navigation/bottom-tabs';
-import {NativeStackScreenProps} from '@react-navigation/native-stack';
-import {RootStackParamList} from '../navigation/RootNavigator';
-import {TabParamList} from '../navigation/MainTabs';
-import {clearToken} from '../services/api';
+import {useFocusEffect} from '@react-navigation/native';
+import {clearToken, reviewService, UserRating, getUserId} from '../services/api';
 import Colors from '../theme/colors';
 
-type Props = CompositeScreenProps<
-  BottomTabScreenProps<TabParamList, 'Profil'>,
-  NativeStackScreenProps<RootStackParamList>
->;
+const ProfileScreen = ({navigation, route}: any) => {
+  const userName: string = route?.params?.userName ?? 'Kullanıcı';
+  const userId: number   = route?.params?.userId   ?? getUserId() ?? 0;
+  const initial = userName.charAt(0).toUpperCase();
 
-const ProfileScreen = ({navigation, route}: Props) => {
-  const {userName} = route.params;
+  const [userRating, setUserRating] = useState<UserRating | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchRating = async () => {
+    if (!userId) { setLoading(false); return; }
+    const result = await reviewService.getUserRating(userId);
+    if (result.data) setUserRating(result.data);
+    setLoading(false);
+    setRefreshing(false);
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchRating();
+    }, [userId]),
+  );
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchRating();
+  };
 
   const handleLogout = () => {
-    Alert.alert('Çıkış Yap', 'Hesabından çıkmak istiyor musun?', [
+    Alert.alert('Çıkış Yap', 'Hesabından çıkış yapmak istiyor musun?', [
       {text: 'İptal', style: 'cancel'},
       {
         text: 'Çıkış Yap',
         style: 'destructive',
-        onPress: () => {
-          clearToken();
-          navigation.replace('Login'); //login'e geri at
-        },
+        onPress: () => { clearToken(); navigation.replace('Login'); },
       },
     ]);
+  };
+
+  const renderStars = (rating: number) => {
+    return [1, 2, 3, 4, 5].map(i => (
+      <Text key={i} style={[styles.star, i <= Math.round(rating) && styles.starFilled]}>
+        {i <= Math.round(rating) ? '★' : '☆'}
+      </Text>
+    ));
   };
 
   return (
@@ -38,66 +70,140 @@ const ProfileScreen = ({navigation, route}: Props) => {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Profil</Text>
       </View>
-      <View style={styles.content}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>
-            {userName.charAt(0).toUpperCase()}
+
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.accent]} />
+        }>
+
+        {/* Avatar */}
+        <View style={styles.avatarContainer}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </View>
+          <Text style={styles.name}>{userName}</Text>
+
+          {/* Ortalama puan özeti */}
+          {loading ? (
+            <ActivityIndicator color={Colors.accent} style={{marginTop: 8}} />
+          ) : userRating && userRating.totalReviews > 0 ? (
+            <View style={styles.ratingRow}>
+              {renderStars(userRating.averageRating)}
+              <Text style={styles.ratingAvg}>{userRating.averageRating.toFixed(1)}</Text>
+              <Text style={styles.ratingCount}>({userRating.totalReviews} değerlendirme)</Text>
+            </View>
+          ) : (
+            <Text style={styles.noRating}>Henüz değerlendirme yok</Text>
+          )}
+        </View>
+
+        {/* Hafta 8 bilgi kutusu */}
+        <View style={styles.infoBox}>
+          <Text style={styles.infoLabel}>Hafta 8 ✅</Text>
+          <Text style={styles.infoText}>
+            Puanlama sistemi tamamlandı.{'\n'}
+            Kabul edilmiş takaslar sonrası her iki taraf{'\n'}
+            birbirini 1-5 yıldızla değerlendirebilir.
           </Text>
         </View>
-        <Text style={styles.name}>{userName}</Text>
 
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+        {/* Gelen değerlendirmeler */}
+        {userRating && userRating.reviews.length > 0 && (
+          <View style={styles.reviewsSection}>
+            <Text style={styles.reviewsTitle}>
+              Aldığım Değerlendirmeler ({userRating.totalReviews})
+            </Text>
+
+            {userRating.reviews.map(review => (
+              <View key={review.id} style={styles.reviewCard}>
+                <View style={styles.reviewHeader}>
+                  <View style={styles.reviewerAvatar}>
+                    <Text style={styles.reviewerAvatarText}>
+                      {review.reviewerName.charAt(0).toUpperCase()}
+                    </Text>
+                  </View>
+                  <View style={styles.reviewerInfo}>
+                    <Text style={styles.reviewerName}>{review.reviewerName}</Text>
+                    <Text style={styles.reviewDate}>
+                      {new Date(review.createdAt).toLocaleDateString('tr-TR')}
+                    </Text>
+                  </View>
+                  <View style={styles.reviewStars}>
+                    {renderStars(review.rating)}
+                  </View>
+                </View>
+                {review.comment ? (
+                  <Text style={styles.reviewComment}>"{review.comment}"</Text>
+                ) : null}
+              </View>
+            ))}
+          </View>
+        )}
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} activeOpacity={0.85}>
           <Text style={styles.logoutText}>Çıkış Yap</Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: Colors.lightGray},
-  header: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
+  header: {backgroundColor: Colors.primary, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16},
   headerTitle: {fontSize: 22, fontWeight: 'bold', color: Colors.white},
-  content: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 32,
-  },
+  content: {padding: 20, paddingBottom: 40},
+  avatarContainer: {alignItems: 'center', marginBottom: 24},
   avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 80, height: 80, borderRadius: 40,
     backgroundColor: Colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 12, elevation: 4,
+    shadowColor: '#000', shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.15, shadowRadius: 6,
   },
   avatarText: {fontSize: 32, fontWeight: 'bold', color: Colors.white},
-  name: {fontSize: 22, fontWeight: 'bold', color: Colors.primary, marginBottom: 24},
+  name: {fontSize: 22, fontWeight: 'bold', color: Colors.primary, marginBottom: 6},
+  ratingRow: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4},
+  star: {fontSize: 20, color: Colors.inputBorder},
+  starFilled: {color: '#F39C12'},
+  ratingAvg: {fontSize: 16, fontWeight: 'bold', color: Colors.primary, marginLeft: 4},
+  ratingCount: {fontSize: 13, color: Colors.darkGray},
+  noRating: {fontSize: 13, color: Colors.gray, marginTop: 4},
   infoBox: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    width: '100%',
-    marginBottom: 32,
-    elevation: 2,
+    backgroundColor: Colors.white, borderRadius: 12, padding: 16,
+    marginBottom: 20, borderLeftWidth: 4, borderLeftColor: Colors.accent, elevation: 1,
   },
-  infoLabel: {fontSize: 16, fontWeight: 'bold', color: Colors.accent, marginBottom: 8},
-  infoText: {fontSize: 14, color: Colors.darkGray, textAlign: 'center', lineHeight: 22},
-  logoutBtn: {
-    backgroundColor: Colors.error,
-    paddingHorizontal: 40,
-    paddingVertical: 13,
-    borderRadius: 10,
+  infoLabel: {fontSize: 13, fontWeight: 'bold', color: Colors.accent, marginBottom: 6},
+  infoText: {fontSize: 14, color: Colors.darkGray, lineHeight: 22},
+  reviewsSection: {marginBottom: 20},
+  reviewsTitle: {fontSize: 15, fontWeight: 'bold', color: Colors.primary, marginBottom: 12},
+  reviewCard: {
+    backgroundColor: Colors.white, borderRadius: 12, padding: 14,
+    marginBottom: 10, elevation: 1,
+    shadowColor: '#000', shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.06, shadowRadius: 3,
   },
-  logoutText: {color: Colors.white, fontSize: 15, fontWeight: 'bold'},
+  reviewHeader: {flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10},
+  reviewerAvatar: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  reviewerAvatarText: {fontSize: 14, fontWeight: 'bold', color: Colors.white},
+  reviewerInfo: {flex: 1},
+  reviewerName: {fontSize: 14, fontWeight: 'bold', color: Colors.primary},
+  reviewDate: {fontSize: 11, color: Colors.gray, marginTop: 1},
+  reviewStars: {flexDirection: 'row', gap: 1},
+  reviewComment: {
+    fontSize: 13, color: Colors.darkGray, fontStyle: 'italic',
+    lineHeight: 19, paddingTop: 4,
+    borderTopWidth: 1, borderTopColor: Colors.inputBorder,
+  },
+  logoutBtn: {backgroundColor: Colors.error, borderRadius: 12, paddingVertical: 14, alignItems: 'center'},
+  logoutText: {color: Colors.white, fontWeight: 'bold', fontSize: 16},
 });
 
 export default ProfileScreen;

@@ -22,9 +22,12 @@ public class OfferResponseDto
     public int ReceiverId { get; set; }
     public string ReceiverName { get; set; } = string.Empty;
 
-    public int RequestedBookId { get; set; }
-    public string RequestedBookTitle { get; set; } = string.Empty;
+    // Frontend'in beklediği alan adları: targetBook = istenen kitap, offeredBook = teklif edilen kitap
+    public int TargetBookId { get; set; }
+    public string TargetBookTitle { get; set; } = string.Empty;
+    public string TargetBookAuthor { get; set; } = string.Empty;
 
     public int OfferedBookId { get; set; }
     public string OfferedBookTitle { get; set; } = string.Empty;
+    public string OfferedBookAuthor { get; set; } = string.Empty;
 }
