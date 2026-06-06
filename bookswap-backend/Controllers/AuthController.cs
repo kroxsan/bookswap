@@ -1,4 +1,4 @@
-// Kayıt ve giriş endpoint'leri
+// Kayıt ve giriş endpoint'leri — Hafta 9: SwapCount login response'a eklendi
 
 using BookSwap.API.Data;
 using BookSwap.API.DTOs;
@@ -34,8 +34,8 @@ public class AuthController : ControllerBase
 
         var user = new User
         {
-            Name = dto.Name,
-            Email = dto.Email,
+            Name         = dto.Name,
+            Email        = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password)
         };
 
@@ -44,10 +44,11 @@ public class AuthController : ControllerBase
 
         return Ok(new AuthResponseDto
         {
-            Token = GenerateToken(user),
-            Name = user.Name,
-            Email = user.Email,
-            UserId = user.Id
+            Token      = GenerateToken(user),
+            Name       = user.Name,
+            Email      = user.Email,
+            UserId     = user.Id,
+            SwapCount  = user.SwapCount
         });
     }
 
@@ -62,10 +63,11 @@ public class AuthController : ControllerBase
 
         return Ok(new AuthResponseDto
         {
-            Token = GenerateToken(user),
-            Name = user.Name,
-            Email = user.Email,
-            UserId = user.Id
+            Token     = GenerateToken(user),
+            Name      = user.Name,
+            Email     = user.Email,
+            UserId    = user.Id,
+            SwapCount = user.SwapCount
         });
     }
 

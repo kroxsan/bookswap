@@ -1,3 +1,5 @@
+// BookSwap - LoginScreen — Hafta 9: swapCount navigation'a eklendi
+
 import React, {useState} from 'react';
 import {
   View,
@@ -43,10 +45,11 @@ const LoginScreen = ({navigation}: Props) => {
     }
 
     setToken(result.data!.token);
-    setUserId(result.data!.userId); // Hafta 8: userId sakla
+    setUserId(result.data!.userId);
     navigation.replace('Main', {
-      userName: result.data!.name,
-      userId: result.data!.userId,
+      userName:  result.data!.name,
+      userId:    result.data!.userId,
+      swapCount: result.data!.swapCount,  // Hafta 9
     });
   };
 
@@ -123,7 +126,7 @@ const LoginScreen = ({navigation}: Props) => {
             </TouchableOpacity>
           </View>
 
-          <Text style={styles.badge}>Hafta 8 ✅</Text>
+          <Text style={styles.badge}>Hafta 9 ✅</Text>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

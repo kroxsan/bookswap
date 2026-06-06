@@ -1,5 +1,4 @@
-// BookSwap - RootNavigator
-// Hafta 6: SendOfferScreen eklendi
+// BookSwap - RootNavigator — Hafta 9: swapCount parametresi eklendi
 
 import React from 'react';
 import {createNativeStackNavigator} from '@react-navigation/native-stack';
@@ -12,8 +11,8 @@ import SendOfferScreen from '../screens/SendOfferScreen';
 export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
-  Main: {userName: string; userId: number};
-  BookDetail: {bookId: number; currentUserId: number};
+  Main: {userName: string; userId: number; swapCount: number};
+  BookDetail: {bookId: number};
   SendOffer: {targetBook: {id: number; title: string; author: string; userName: string}};
 };
 

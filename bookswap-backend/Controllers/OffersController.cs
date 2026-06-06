@@ -1,10 +1,10 @@
-// Takas teklifi endpoint'leri — Hafta 8
+// Takas teklifi endpoint'leri — Hafta 9
 //
 // POST   /api/offers              - teklif gönder  (+bildirim)
 // GET    /api/offers/incoming     - gelen teklifler
 // GET    /api/offers/outgoing     - giden teklifler
-// PUT    /api/offers/{id}/accept  - kabul et        (+bildirim)
-// PUT    /api/offers/{id}/reject  - reddet           (+bildirim)
+// PUT    /api/offers/{id}/accept  - kabul et: kitapları "Takaslandı" yap, SwapCount artır (+bildirim)
+// PUT    /api/offers/{id}/reject  - reddet (+bildirim)
 //
 // Status değerleri: "Bekliyor" | "Kabul" | "Red"
 
@@ -34,7 +34,7 @@ public class OffersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateOfferDto dto)
     {
-        var senderId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        var senderId   = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
         var senderName = User.FindFirstValue(ClaimTypes.Name)!;
 
         var requestedBook = await _context.Books
@@ -130,6 +130,7 @@ public class OffersController : ControllerBase
     }
 
     // PUT /api/offers/{id}/accept — teklifi kabul et
+    // Hafta 9: her iki kitabı "Takaslandı" yapar, her iki kullanıcının SwapCount'ını artırır
     [HttpPut("{id}/accept")]
     public async Task<IActionResult> Accept(int id)
     {
@@ -146,19 +147,33 @@ public class OffersController : ControllerBase
         if (offer.Status != "Bekliyor")
             return BadRequest(new { message = "Bu teklif zaten yanıtlanmış." });
 
+        // Teklif durumunu güncelle
         offer.Status = "Kabul";
 
+        // ── Hafta 9: Her iki kitabı "Takaslandı" olarak işaretle ─────────
+        offer.RequestedBook.Status = "Takaslandı";
+        offer.OfferedBook.Status   = "Takaslandı";
+        // ─────────────────────────────────────────────────────────────────
+
+        // ── Hafta 9: Her iki kullanıcının takas sayısını artır ───────────
+        var sender   = await _context.Users.FindAsync(offer.SenderId);
+        var receiver = await _context.Users.FindAsync(offer.ReceiverId);
+        if (sender   != null) sender.SwapCount++;
+        if (receiver != null) receiver.SwapCount++;
+        // ─────────────────────────────────────────────────────────────────
+
+        // Bildirim — teklifi gönderene bildir
         _context.Notifications.Add(new Notification
         {
             UserId  = offer.SenderId,
             Title   = "Teklifin Kabul Edildi ✅",
-            Message = $"{userName}, \"{offer.RequestedBook.Title}\" için teklifini kabul etti!",
+            Message = $"{userName}, \"{offer.RequestedBook.Title}\" için teklifini kabul etti! Takas tamamlandı 🎉",
             Type    = "TeklifKabul",
             OfferId = offer.Id
         });
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Teklif kabul edildi.", offerId = id });
+        return Ok(new { message = "Teklif kabul edildi, takas tamamlandı.", offerId = id });
     }
 
     // PUT /api/offers/{id}/reject — teklifi reddet
@@ -202,11 +217,9 @@ public class OffersController : ControllerBase
         SenderName     = o.Sender.Name,
         ReceiverId     = o.ReceiverId,
         ReceiverName   = o.Receiver.Name,
-        // RequestedBook = ilan sahibinin kitabı = frontend'de "targetBook"
         TargetBookId     = o.RequestedBookId,
         TargetBookTitle  = o.RequestedBook.Title,
         TargetBookAuthor = o.RequestedBook.Author,
-        // OfferedBook = teklifi gönderenin kitabı
         OfferedBookId     = o.OfferedBookId,
         OfferedBookTitle  = o.OfferedBook.Title,
         OfferedBookAuthor = o.OfferedBook.Author,

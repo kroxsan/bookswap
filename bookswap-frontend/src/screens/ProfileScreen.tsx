@@ -1,5 +1,6 @@
 // BookSwap - ProfileScreen
 // Hafta 8: Kullanıcının ortalama puanı ve aldığı yorumlar gösteriliyor
+// Hafta 9: Tamamlanan takas sayısı (SwapCount) gösteriliyor
 
 import React, {useState, useCallback} from 'react';
 import {
@@ -18,8 +19,9 @@ import {clearToken, reviewService, UserRating, getUserId} from '../services/api'
 import Colors from '../theme/colors';
 
 const ProfileScreen = ({navigation, route}: any) => {
-  const userName: string = route?.params?.userName ?? 'Kullanıcı';
-  const userId: number   = route?.params?.userId   ?? getUserId() ?? 0;
+  const userName: string  = route?.params?.userName  ?? 'Kullanıcı';
+  const userId: number    = route?.params?.userId    ?? getUserId() ?? 0;
+  const swapCount: number = route?.params?.swapCount ?? 0;
   const initial = userName.charAt(0).toUpperCase();
 
   const [userRating, setUserRating] = useState<UserRating | null>(null);
@@ -78,14 +80,12 @@ const ProfileScreen = ({navigation, route}: any) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.accent]} />
         }>
 
-        {/* Avatar */}
         <View style={styles.avatarContainer}>
           <View style={styles.avatar}>
             <Text style={styles.avatarText}>{initial}</Text>
           </View>
           <Text style={styles.name}>{userName}</Text>
 
-          {/* Ortalama puan özeti */}
           {loading ? (
             <ActivityIndicator color={Colors.accent} style={{marginTop: 8}} />
           ) : userRating && userRating.totalReviews > 0 ? (
@@ -99,17 +99,32 @@ const ProfileScreen = ({navigation, route}: any) => {
           )}
         </View>
 
-        {/* Hafta 8 bilgi kutusu */}
+        <View style={styles.statsRow}>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>🔄</Text>
+            <Text style={styles.statValue}>{swapCount}</Text>
+            <Text style={styles.statLabel}>Tamamlanan Takas</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>⭐</Text>
+            <Text style={styles.statValue}>
+              {userRating && userRating.totalReviews > 0
+                ? userRating.averageRating.toFixed(1)
+                : '—'}
+            </Text>
+            <Text style={styles.statLabel}>Ortalama Puan</Text>
+          </View>
+        </View>
+
         <View style={styles.infoBox}>
-          <Text style={styles.infoLabel}>Hafta 8 ✅</Text>
+          <Text style={styles.infoLabel}>Hafta 9</Text>
           <Text style={styles.infoText}>
-            Puanlama sistemi tamamlandı.{'\n'}
-            Kabul edilmiş takaslar sonrası her iki taraf{'\n'}
-            birbirini 1-5 yıldızla değerlendirebilir.
+            Takas akışı uçtan uca tamamlandı.{'\n'}
+            Teklif kabul edildiğinde her iki kitap "Takaslandı"{'\n'}
+            olarak işaretlenir ve takas sayısı güncellenir.
           </Text>
         </View>
 
-        {/* Gelen değerlendirmeler */}
         {userRating && userRating.reviews.length > 0 && (
           <View style={styles.reviewsSection}>
             <Text style={styles.reviewsTitle}>
@@ -155,7 +170,7 @@ const styles = StyleSheet.create({
   header: {backgroundColor: Colors.primary, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16},
   headerTitle: {fontSize: 22, fontWeight: 'bold', color: Colors.white},
   content: {padding: 20, paddingBottom: 40},
-  avatarContainer: {alignItems: 'center', marginBottom: 24},
+  avatarContainer: {alignItems: 'center', marginBottom: 20},
   avatar: {
     width: 80, height: 80, borderRadius: 40,
     backgroundColor: Colors.accent,
@@ -172,6 +187,26 @@ const styles = StyleSheet.create({
   ratingAvg: {fontSize: 16, fontWeight: 'bold', color: Colors.primary, marginLeft: 4},
   ratingCount: {fontSize: 13, color: Colors.darkGray},
   noRating: {fontSize: 13, color: Colors.gray, marginTop: 4},
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+  },
+  statIcon: {fontSize: 26, marginBottom: 6},
+  statValue: {fontSize: 24, fontWeight: 'bold', color: Colors.primary, marginBottom: 4},
+  statLabel: {fontSize: 12, color: Colors.darkGray, textAlign: 'center'},
   infoBox: {
     backgroundColor: Colors.white, borderRadius: 12, padding: 16,
     marginBottom: 20, borderLeftWidth: 4, borderLeftColor: Colors.accent, elevation: 1,

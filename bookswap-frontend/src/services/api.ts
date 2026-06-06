@@ -1,5 +1,5 @@
 // BookSwap - API servis katmanı
-// Hafta 8: reviewService + UserRating + CanReviewResult eklendi
+// Hafta 9: AuthResult'a swapCount eklendi
 
 const BASE_URL = 'http://10.0.2.2:5000';
 
@@ -81,6 +81,7 @@ export interface AuthResult {
   name: string;
   email: string;
   userId: number;
+  swapCount: number;  // Hafta 9
 }
 
 export const authService = {
@@ -210,15 +211,12 @@ export interface CanReviewResult {
 }
 
 export const reviewService = {
-  // Puan ver
   create: (offerId: number, reviewedUserId: number, rating: number, comment?: string) =>
     post<Review>('/api/reviews', {offerId, reviewedUserId, rating, comment}),
 
-  // Kullanıcının aldığı tüm puanlar ve ortalama
   getUserRating: (userId: number) =>
     get<UserRating>(`/api/reviews/user/${userId}`),
 
-  // Bu teklif için puan verebilir miyim?
   canReview: (offerId: number) =>
     get<CanReviewResult>(`/api/reviews/can-review/${offerId}`),
 };

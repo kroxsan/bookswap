@@ -1,5 +1,6 @@
 // BookSwap - MainTabs
 // Hafta 7: Bildirimler sekmesi eklendi, okunmamış badge gösteriliyor
+// Hafta 9: swapCount route param forward edildi
 
 import React, {useState, useCallback} from 'react';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
@@ -20,7 +21,7 @@ export type TabParamList = {
   'İlanlarım': undefined;
   'Teklifler': undefined;
   'Bildirimler': undefined;
-  'Profil': {userName: string};
+  'Profil': {userName: string; userId: number; swapCount: number};
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Main'>;
@@ -28,7 +29,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Main'>;
 const Tab = createBottomTabNavigator<TabParamList>();
 
 const MainTabs = ({route}: Props) => {
-  const {userName} = route.params;
+  const {userName, userId, swapCount} = route.params;
   const [unreadCount, setUnreadCount] = useState(0);
 
   // Sekmeye her geçişte okunmamış sayısını güncelle
@@ -93,7 +94,7 @@ const MainTabs = ({route}: Props) => {
       <Tab.Screen
         name="Profil"
         component={ProfileScreen}
-        initialParams={{userName}}
+        initialParams={{userName, userId, swapCount}}
       />
     </Tab.Navigator>
   );

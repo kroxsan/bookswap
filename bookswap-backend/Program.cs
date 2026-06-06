@@ -1,5 +1,5 @@
 // BookSwap - Kampüs İkinci El Kitap Takas Platformu
-// Program.cs — Hafta 8: Reviews tablosu + status migration
+// Program.cs — Hafta 9: SwapCount kolonu + Takaslandı migration
 
 using BookSwap.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,11 +13,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// MSSQL bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// JWT kimlik doğrulama
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -34,7 +32,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// CORS - Android emülatörden ve gerçek cihazdan gelen isteklere izin ver
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -45,20 +42,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Hem localhost hem de dış IP üzerinden dinle
 builder.WebHost.UseUrls("http://0.0.0.0:5000");
 
 var app = builder.Build();
 
-// Veritabanını otomatik oluştur / güncelle
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // Veritabanı yoksa sıfırdan oluştur
     db.Database.EnsureCreated();
 
-    // Books tablosu yoksa elle oluştur
     db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Books')
         BEGIN
@@ -78,7 +71,6 @@ using (var scope = app.Services.CreateScope())
         END
     ");
 
-    // Offers tablosu yoksa oluştur
     db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Offers')
         BEGIN
@@ -102,7 +94,6 @@ using (var scope = app.Services.CreateScope())
         END
     ");
 
-    // Hafta 7 — Notifications tablosu
     db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Notifications')
         BEGIN
@@ -121,7 +112,6 @@ using (var scope = app.Services.CreateScope())
         END
     ");
 
-    // Hafta 8 — Reviews tablosu
     db.Database.ExecuteSqlRaw(@"
         IF NOT EXISTS (SELECT * FROM sys.tables WHERE name = 'Reviews')
         BEGIN
@@ -144,11 +134,48 @@ using (var scope = app.Services.CreateScope())
         END
     ");
 
-    // Hafta 8 — Eski status string'lerini kısa forma migrate et
-    // "Kabul Edildi" -> "Kabul" | "Reddedildi" -> "Red"
     db.Database.ExecuteSqlRaw(@"
         UPDATE Offers SET Status = 'Kabul' WHERE Status = 'Kabul Edildi';
         UPDATE Offers SET Status = 'Red'   WHERE Status = 'Reddedildi';
+    ");
+
+    db.Database.ExecuteSqlRaw(@"
+        IF NOT EXISTS (
+            SELECT * FROM sys.columns
+            WHERE object_id = OBJECT_ID('Users') AND name = 'SwapCount'
+        )
+        BEGIN
+            ALTER TABLE Users ADD SwapCount INT NOT NULL DEFAULT 0
+        END
+    ");
+
+    // Hafta 9: Dynamic SQL ile kolon adını runtime'da kontrol et
+    db.Database.ExecuteSqlRaw(@"
+        IF EXISTS (
+            SELECT * FROM sys.columns
+            WHERE object_id = OBJECT_ID('Offers') AND name = 'RequestedBookId'
+        )
+        BEGIN
+            EXEC sp_executesql N'
+                UPDATE Books SET Status = N''Takaslandı''
+                WHERE Id IN (
+                    SELECT RequestedBookId FROM Offers WHERE Status = N''Kabul''
+                    UNION
+                    SELECT OfferedBookId FROM Offers WHERE Status = N''Kabul''
+                )
+                AND Status = N''Aktif''
+            '
+        END
+    ");
+
+    // Hafta 9: SwapCount backfill
+    db.Database.ExecuteSqlRaw(@"
+        UPDATE Users SET SwapCount = (
+            SELECT COUNT(*) FROM Offers
+            WHERE Status = N'Kabul'
+              AND (SenderId = Users.Id OR ReceiverId = Users.Id)
+        )
+        WHERE SwapCount = 0
     ");
 }
 
@@ -166,9 +193,9 @@ app.MapControllers();
 app.MapGet("/", () => new
 {
     app = "BookSwap API",
-    version = "0.8.0",
+    version = "0.9.0",
     status = "running",
-    hafta = 8
+    hafta = 9
 });
 
 app.Run();
