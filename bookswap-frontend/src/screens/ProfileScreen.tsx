@@ -1,6 +1,5 @@
 // BookSwap - ProfileScreen
-// Hafta 8: Kullanıcının ortalama puanı ve aldığı yorumlar gösteriliyor
-// Hafta 9: Tamamlanan takas sayısı (SwapCount) gösteriliyor
+// Hafta 10: Stat kartları daha belirgin shadow, avatar ring eklendi, review kartları iyileştirildi
 
 import React, {useState, useCallback} from 'react';
 import {
@@ -36,36 +35,22 @@ const ProfileScreen = ({navigation, route}: any) => {
     setRefreshing(false);
   };
 
-  useFocusEffect(
-    useCallback(() => {
-      setLoading(true);
-      fetchRating();
-    }, [userId]),
-  );
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchRating();
-  };
+  useFocusEffect(useCallback(() => { setLoading(true); fetchRating(); }, [userId]));
+  const onRefresh = () => { setRefreshing(true); fetchRating(); };
 
   const handleLogout = () => {
     Alert.alert('Çıkış Yap', 'Hesabından çıkış yapmak istiyor musun?', [
       {text: 'İptal', style: 'cancel'},
-      {
-        text: 'Çıkış Yap',
-        style: 'destructive',
-        onPress: () => { clearToken(); navigation.replace('Login'); },
-      },
+      {text: 'Çıkış Yap', style: 'destructive', onPress: () => { clearToken(); navigation.replace('Login'); }},
     ]);
   };
 
-  const renderStars = (rating: number) => {
-    return [1, 2, 3, 4, 5].map(i => (
+  const renderStars = (rating: number) =>
+    [1, 2, 3, 4, 5].map(i => (
       <Text key={i} style={[styles.star, i <= Math.round(rating) && styles.starFilled]}>
         {i <= Math.round(rating) ? '★' : '☆'}
       </Text>
     ));
-  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -76,13 +61,14 @@ const ProfileScreen = ({navigation, route}: any) => {
       <ScrollView
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.accent]} />
-        }>
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.accent]} />}>
 
+        {/* Avatar — Hafta 10: dış ring eklendi */}
         <View style={styles.avatarContainer}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
+          <View style={styles.avatarRing}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initial}</Text>
+            </View>
           </View>
           <Text style={styles.name}>{userName}</Text>
 
@@ -99,38 +85,33 @@ const ProfileScreen = ({navigation, route}: any) => {
           )}
         </View>
 
+        {/* Stat kartları — Hafta 10: daha belirgin gölge */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>🔄</Text>
             <Text style={styles.statValue}>{swapCount}</Text>
-            <Text style={styles.statLabel}>Tamamlanan Takas</Text>
+            <Text style={styles.statLabel}>Tamamlanan{'\n'}Takas</Text>
           </View>
           <View style={styles.statCard}>
             <Text style={styles.statIcon}>⭐</Text>
             <Text style={styles.statValue}>
-              {userRating && userRating.totalReviews > 0
-                ? userRating.averageRating.toFixed(1)
-                : '—'}
+              {userRating && userRating.totalReviews > 0 ? userRating.averageRating.toFixed(1) : '—'}
             </Text>
-            <Text style={styles.statLabel}>Ortalama Puan</Text>
+            <Text style={styles.statLabel}>Ortalama{'\n'}Puan</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>📝</Text>
+            <Text style={styles.statValue}>{userRating?.totalReviews ?? 0}</Text>
+            <Text style={styles.statLabel}>Aldığım{'\n'}Yorum</Text>
           </View>
         </View>
 
-        <View style={styles.infoBox}>
-          <Text style={styles.infoLabel}>Hafta 9</Text>
-          <Text style={styles.infoText}>
-            Takas akışı uçtan uca tamamlandı.{'\n'}
-            Teklif kabul edildiğinde her iki kitap "Takaslandı"{'\n'}
-            olarak işaretlenir ve takas sayısı güncellenir.
-          </Text>
-        </View>
-
+        {/* Gelen değerlendirmeler */}
         {userRating && userRating.reviews.length > 0 && (
           <View style={styles.reviewsSection}>
             <Text style={styles.reviewsTitle}>
-              Aldığım Değerlendirmeler ({userRating.totalReviews})
+              Değerlendirmeler ({userRating.totalReviews})
             </Text>
-
             {userRating.reviews.map(review => (
               <View key={review.id} style={styles.reviewCard}>
                 <View style={styles.reviewHeader}>
@@ -145,9 +126,7 @@ const ProfileScreen = ({navigation, route}: any) => {
                       {new Date(review.createdAt).toLocaleDateString('tr-TR')}
                     </Text>
                   </View>
-                  <View style={styles.reviewStars}>
-                    {renderStars(review.rating)}
-                  </View>
+                  <View style={styles.reviewStars}>{renderStars(review.rating)}</View>
                 </View>
                 {review.comment ? (
                   <Text style={styles.reviewComment}>"{review.comment}"</Text>
@@ -167,75 +146,93 @@ const ProfileScreen = ({navigation, route}: any) => {
 
 const styles = StyleSheet.create({
   safeArea: {flex: 1, backgroundColor: Colors.lightGray},
-  header: {backgroundColor: Colors.primary, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 16},
+  header: {backgroundColor: Colors.primary, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 16},
   headerTitle: {fontSize: 22, fontWeight: 'bold', color: Colors.white},
   content: {padding: 20, paddingBottom: 40},
-  avatarContainer: {alignItems: 'center', marginBottom: 20},
-  avatar: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: Colors.accent,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 12, elevation: 4,
-    shadowColor: '#000', shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.15, shadowRadius: 6,
+  avatarContainer: {alignItems: 'center', marginBottom: 24},
+  // Hafta 10: dış ring
+  avatarRing: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 3,
+    borderColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
   },
-  avatarText: {fontSize: 32, fontWeight: 'bold', color: Colors.white},
+  avatar: {
+    width: 84,
+    height: 84,
+    borderRadius: 42,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarText: {fontSize: 34, fontWeight: 'bold', color: Colors.white},
   name: {fontSize: 22, fontWeight: 'bold', color: Colors.primary, marginBottom: 6},
   ratingRow: {flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4},
-  star: {fontSize: 20, color: Colors.inputBorder},
-  starFilled: {color: '#F39C12'},
-  ratingAvg: {fontSize: 16, fontWeight: 'bold', color: Colors.primary, marginLeft: 4},
-  ratingCount: {fontSize: 13, color: Colors.darkGray},
+  star: {fontSize: 18, color: Colors.inputBorder},
+  starFilled: {color: '#F0622A'},
+  ratingAvg: {fontSize: 15, fontWeight: 'bold', color: Colors.primary, marginLeft: 4},
+  ratingCount: {fontSize: 12, color: Colors.darkGray},
   noRating: {fontSize: 13, color: Colors.gray, marginTop: 4},
-  statsRow: {
-    flexDirection: 'row',
-    gap: 12,
-    marginBottom: 16,
-  },
+  // Hafta 10: 3 stat kartı yan yana
+  statsRow: {flexDirection: 'row', gap: 10, marginBottom: 20},
   statCard: {
     flex: 1,
     backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 16,
+    borderRadius: 14,
+    padding: 14,
     alignItems: 'center',
-    elevation: 2,
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
   },
-  statIcon: {fontSize: 26, marginBottom: 6},
-  statValue: {fontSize: 24, fontWeight: 'bold', color: Colors.primary, marginBottom: 4},
-  statLabel: {fontSize: 12, color: Colors.darkGray, textAlign: 'center'},
-  infoBox: {
-    backgroundColor: Colors.white, borderRadius: 12, padding: 16,
-    marginBottom: 20, borderLeftWidth: 4, borderLeftColor: Colors.accent, elevation: 1,
-  },
-  infoLabel: {fontSize: 13, fontWeight: 'bold', color: Colors.accent, marginBottom: 6},
-  infoText: {fontSize: 14, color: Colors.darkGray, lineHeight: 22},
+  statIcon: {fontSize: 24, marginBottom: 6},
+  statValue: {fontSize: 22, fontWeight: 'bold', color: Colors.primary, marginBottom: 4},
+  statLabel: {fontSize: 11, color: Colors.darkGray, textAlign: 'center', lineHeight: 15},
   reviewsSection: {marginBottom: 20},
   reviewsTitle: {fontSize: 15, fontWeight: 'bold', color: Colors.primary, marginBottom: 12},
   reviewCard: {
-    backgroundColor: Colors.white, borderRadius: 12, padding: 14,
-    marginBottom: 10, elevation: 1,
-    shadowColor: '#000', shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.06, shadowRadius: 3,
+    backgroundColor: Colors.white,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 1},
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
   },
   reviewHeader: {flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 10},
   reviewerAvatar: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     backgroundColor: Colors.primary,
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  reviewerAvatarText: {fontSize: 14, fontWeight: 'bold', color: Colors.white},
+  reviewerAvatarText: {fontSize: 15, fontWeight: 'bold', color: Colors.white},
   reviewerInfo: {flex: 1},
   reviewerName: {fontSize: 14, fontWeight: 'bold', color: Colors.primary},
   reviewDate: {fontSize: 11, color: Colors.gray, marginTop: 1},
   reviewStars: {flexDirection: 'row', gap: 1},
   reviewComment: {
-    fontSize: 13, color: Colors.darkGray, fontStyle: 'italic',
-    lineHeight: 19, paddingTop: 4,
-    borderTopWidth: 1, borderTopColor: Colors.inputBorder,
+    fontSize: 13,
+    color: Colors.darkGray,
+    fontStyle: 'italic',
+    lineHeight: 19,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: Colors.cardBorder,
   },
   logoutBtn: {backgroundColor: Colors.error, borderRadius: 12, paddingVertical: 14, alignItems: 'center'},
   logoutText: {color: Colors.white, fontWeight: 'bold', fontSize: 16},

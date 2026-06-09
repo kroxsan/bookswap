@@ -1,5 +1,5 @@
 // BookSwap - HomeScreen
-// Hafta 5: Arama, kategori filtresi + kitap detayına gitme
+// Hafta 10: Kart tasarımı iyileştirildi — sol renkli accent çizgisi, daha belirgin shadow, kitap bilgisi düzeni
 
 import React, {useState, useCallback} from 'react';
 import {
@@ -24,11 +24,11 @@ import Colors from '../theme/colors';
 type HomeNavProp = NativeStackNavigationProp<RootStackParamList>;
 
 const CATEGORIES = ['Tümü', 'Roman', 'Ders Kitabı', 'Bilim', 'Tarih', 'Kişisel Gelişim', 'Diğer'];
-const CONDITIONS_MAP: Record<string, string> = {
-  'Yeni': '🟢',
-  'İyi': '🔵',
-  'Orta': '🟡',
-  'Yıpranmış': '🔴',
+const CONDITIONS_MAP: Record<string, {icon: string; color: string}> = {
+  'Yeni':      {icon: '🟢', color: '#1DB954'},
+  'İyi':       {icon: '🔵', color: '#2980B9'},
+  'Orta':      {icon: '🟡', color: '#F39C12'},
+  'Yıpranmış': {icon: '🔴', color: '#E74C3C'},
 };
 
 const HomeScreen = () => {
@@ -43,11 +43,8 @@ const HomeScreen = () => {
 
   const fetchBooks = async () => {
     const result = await bookService.getAll();
-    if (result.error) {
-      Alert.alert('Hata', result.error);
-    } else {
-      setBooks(result.data ?? []);
-    }
+    if (result.error) Alert.alert('Hata', result.error);
+    else setBooks(result.data ?? []);
     setLoading(false);
     setRefreshing(false);
   };
@@ -68,27 +65,20 @@ const HomeScreen = () => {
     fetchBooks();
   };
 
-  // Arama veya filtre değişince backend'e sorgu at
   const handleSearch = useCallback(async (text: string, category: string) => {
-    // Her ikisi de boşsa tüm ilanları getir
     if (!text.trim() && category === 'Tümü') {
       setSearching(false);
       fetchBooks();
       return;
     }
-
     setSearching(true);
     const result = await bookService.search({
       q: text.trim() || undefined,
       category: category !== 'Tümü' ? category : undefined,
     });
     setSearching(false);
-
-    if (result.error) {
-      Alert.alert('Hata', result.error);
-    } else {
-      setBooks(result.data ?? []);
-    }
+    if (result.error) Alert.alert('Hata', result.error);
+    else setBooks(result.data ?? []);
   }, []);
 
   const onSearchChange = (text: string) => {
@@ -101,79 +91,97 @@ const HomeScreen = () => {
     handleSearch(searchText, cat);
   };
 
-  const renderBook = ({item}: {item: Book}) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.85}
-      onPress={() => navigation.navigate('BookDetail', {bookId: item.id})}>
-      <View style={styles.cardHeader}>
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText}>{item.category}</Text>
+  // Hafta 10: iyileştirilmiş kart tasarımı
+  const renderBook = ({item}: {item: Book}) => {
+    const cond = CONDITIONS_MAP[item.condition] ?? {icon: '⚪', color: Colors.gray};
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.82}
+        onPress={() => navigation.navigate('BookDetail', {bookId: item.id})}>
+
+        {/* Sol accent çizgisi — Hafta 10 */}
+        <View style={styles.cardAccentBar} />
+
+        <View style={styles.cardInner}>
+          {/* Üst satır: kategori badge + durum */}
+          <View style={styles.cardHeader}>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{item.category}</Text>
+            </View>
+            <View style={[styles.conditionBadge, {backgroundColor: cond.color + '18'}]}>
+              <Text style={[styles.conditionText, {color: cond.color}]}>
+                {cond.icon} {item.condition}
+              </Text>
+            </View>
+          </View>
+
+          {/* Kitap başlık ve yazar */}
+          <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
+          <Text style={styles.author}>{item.author}</Text>
+
+          {item.description ? (
+            <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+          ) : null}
+
+          {/* Alt satır: sahip + tarih */}
+          <View style={styles.cardFooter}>
+            <View style={styles.ownerRow}>
+              <View style={styles.ownerAvatar}>
+                <Text style={styles.ownerAvatarText}>
+                  {item.userName?.charAt(0).toUpperCase()}
+                </Text>
+              </View>
+              <Text style={styles.ownerText}>{item.userName}</Text>
+            </View>
+            <Text style={styles.dateText}>
+              {new Date(item.createdAt).toLocaleDateString('tr-TR')}
+            </Text>
+          </View>
         </View>
-        <Text style={styles.conditionText}>
-          {CONDITIONS_MAP[item.condition] ?? '⚪'} {item.condition}
-        </Text>
-      </View>
-      <Text style={styles.title} numberOfLines={2}>{item.title}</Text>
-      <Text style={styles.author}>{item.author}</Text>
-      {item.description ? (
-        <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
-      ) : null}
-      <View style={styles.cardFooter}>
-        <Text style={styles.ownerText}>👤 {item.userName}</Text>
-        <Text style={styles.dateText}>
-          {new Date(item.createdAt).toLocaleDateString('tr-TR')}
-        </Text>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>📚 BookSwap</Text>
-        <Text style={styles.headerSub}>Aktif İlanlar</Text>
-      </View>
-
-      {/* Arama Kutusu */}
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Kitap adı veya yazar ara..."
-          placeholderTextColor={Colors.placeholder}
-          value={searchText}
-          onChangeText={onSearchChange}
-          clearButtonMode="while-editing"
-        />
-        {searching && (
-          <ActivityIndicator
-            style={styles.searchSpinner}
-            size="small"
-            color={Colors.accent}
-          />
+        <View>
+          <Text style={styles.headerTitle}>📚 BookSwap</Text>
+          <Text style={styles.headerSub}>Aktif İlanlar</Text>
+        </View>
+        {!loading && (
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{books.length} ilan</Text>
+          </View>
         )}
       </View>
 
-      {/* Kategori Filtreleri */}
+      {/* Arama */}
+      <View style={styles.searchContainer}>
+        <View style={styles.searchBox}>
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Kitap adı veya yazar ara..."
+            placeholderTextColor={Colors.placeholder}
+            value={searchText}
+            onChangeText={onSearchChange}
+            clearButtonMode="while-editing"
+          />
+          {searching && <ActivityIndicator size="small" color={Colors.accent} style={{marginRight: 8}} />}
+        </View>
+      </View>
+
+      {/* Kategori filtreleri */}
       <View style={styles.filterWrapper}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
           {CATEGORIES.map(cat => (
             <TouchableOpacity
               key={cat}
-              style={[
-                styles.filterChip,
-                selectedCategory === cat && styles.filterChipActive,
-              ]}
+              style={[styles.filterChip, selectedCategory === cat && styles.filterChipActive]}
               onPress={() => onCategorySelect(cat)}>
-              <Text
-                style={[
-                  styles.filterChipText,
-                  selectedCategory === cat && styles.filterChipTextActive,
-                ]}>
+              <Text style={[styles.filterChipText, selectedCategory === cat && styles.filterChipTextActive]}>
                 {cat}
               </Text>
             </TouchableOpacity>
@@ -181,17 +189,15 @@ const HomeScreen = () => {
         </ScrollView>
       </View>
 
-      {/* Liste */}
       {loading ? (
         <View style={styles.center}>
           <ActivityIndicator size="large" color={Colors.accent} />
         </View>
       ) : books.length === 0 ? (
         <View style={styles.center}>
+          <Text style={styles.emptyIcon}>📭</Text>
           <Text style={styles.emptyText}>
-            {searchText || selectedCategory !== 'Tümü'
-              ? 'Arama sonucu bulunamadı.'
-              : 'Henüz ilan yok.'}
+            {searchText || selectedCategory !== 'Tümü' ? 'Sonuç bulunamadı.' : 'Henüz ilan yok.'}
           </Text>
           <Text style={styles.emptySubText}>
             {!searchText && selectedCategory === 'Tümü'
@@ -205,13 +211,9 @@ const HomeScreen = () => {
           keyExtractor={item => item.id.toString()}
           renderItem={renderBook}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              colors={[Colors.accent]}
-              tintColor={Colors.accent}
-            />
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[Colors.accent]} tintColor={Colors.accent} />
           }
         />
       )}
@@ -224,63 +226,68 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: Colors.primary,
     paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 16,
-  },
-  headerTitle: {fontSize: 22, fontWeight: 'bold', color: Colors.white},
-  headerSub: {fontSize: 13, color: Colors.gray, marginTop: 2},
-  searchContainer: {
-    backgroundColor: Colors.primary,
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingTop: 14,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
   },
-  searchInput: {
-    flex: 1,
+  headerTitle: {fontSize: 22, fontWeight: 'bold', color: Colors.white},
+  headerSub: {fontSize: 12, color: Colors.gray, marginTop: 1},
+  countBadge: {
+    backgroundColor: Colors.accent,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  countText: {color: Colors.white, fontSize: 12, fontWeight: '700'},
+  searchContainer: {backgroundColor: Colors.primary, paddingHorizontal: 16, paddingBottom: 14},
+  searchBox: {
     backgroundColor: Colors.white,
-    borderRadius: 10,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    fontSize: 14,
-    color: Colors.primary,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
   },
-  searchSpinner: {marginLeft: 10},
-  filterWrapper: {
-    backgroundColor: Colors.primary,
-    paddingBottom: 12,
-  },
-  filterRow: {
-    paddingHorizontal: 16,
-    gap: 8,
-  },
+  searchIcon: {fontSize: 16, marginRight: 6},
+  searchInput: {flex: 1, paddingVertical: 10, fontSize: 14, color: Colors.primary},
+  filterWrapper: {backgroundColor: Colors.primary, paddingBottom: 14},
+  filterRow: {paddingHorizontal: 16, gap: 8},
   filterChip: {
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: 'rgba(255,255,255,0.25)',
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  filterChipActive: {
-    backgroundColor: Colors.accent,
-    borderColor: Colors.accent,
-  },
+  filterChipActive: {backgroundColor: Colors.accent, borderColor: Colors.accent},
   filterChipText: {fontSize: 13, color: Colors.gray},
   filterChipTextActive: {color: Colors.white, fontWeight: '600'},
   center: {flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32},
-  emptyText: {fontSize: 16, fontWeight: 'bold', color: Colors.darkGray, marginBottom: 8},
+  emptyIcon: {fontSize: 48, marginBottom: 12},
+  emptyText: {fontSize: 16, fontWeight: 'bold', color: Colors.darkGray, marginBottom: 6},
   emptySubText: {fontSize: 14, color: Colors.gray, textAlign: 'center'},
   list: {padding: 16, gap: 12},
+
+  // Hafta 10: yeni kart stili
   card: {
     backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 16,
-    elevation: 2,
+    borderRadius: 14,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    elevation: 3,
     shadowColor: '#000',
-    shadowOffset: {width: 0, height: 1},
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.10,
+    shadowRadius: 6,
+    borderWidth: 1,
+    borderColor: Colors.cardBorder,
   },
+  cardAccentBar: {
+    width: 4,
+    backgroundColor: Colors.accent,
+  },
+  cardInner: {flex: 1, padding: 14},
   cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -294,20 +301,36 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   categoryText: {color: Colors.white, fontSize: 11, fontWeight: '600'},
-  conditionText: {fontSize: 12, color: Colors.darkGray},
-  title: {fontSize: 16, fontWeight: 'bold', color: Colors.primary, marginBottom: 4},
+  conditionBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  conditionText: {fontSize: 11, fontWeight: '600'},
+  title: {fontSize: 16, fontWeight: 'bold', color: Colors.primary, marginBottom: 3},
   author: {fontSize: 13, color: Colors.darkGray, marginBottom: 6},
   description: {fontSize: 13, color: Colors.darkGray, marginBottom: 8, lineHeight: 18},
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: Colors.inputBorder,
+    borderTopColor: Colors.cardBorder,
     paddingTop: 8,
     marginTop: 4,
   },
+  ownerRow: {flexDirection: 'row', alignItems: 'center', gap: 6},
+  ownerAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ownerAvatarText: {fontSize: 10, fontWeight: 'bold', color: Colors.white},
   ownerText: {fontSize: 12, color: Colors.darkGray},
-  dateText: {fontSize: 12, color: Colors.gray},
+  dateText: {fontSize: 11, color: Colors.gray},
 });
 
 export default HomeScreen;
